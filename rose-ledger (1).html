@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0c0910">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rosé Ledger">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230c0910'/%3E%3Ctext x='50' y='66' font-size='52' text-anchor='middle'%3E%F0%9F%8C%B7%3C/text%3E%3C/svg%3E">
+<title>Rosé Ledger — Trading Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0c0910;
+    --bg-2:#120d16;
+    --surface:#191220;
+    --surface-2:#211826;
+    --border:#2b2130;
+    --border-soft:#33262f;
+    --pink:#f2c6d9;
+    --pink-soft:#f8dde8;
+    --pink-deep:#dc9fbe;
+    --pink-dim:#7d5c6c;
+    --text:#f4ecef;
+    --text-muted:#a8969f;
+    --text-faint:#6f5e68;
+    --profit:#8fd9b6;
+    --profit-dim:#3f5c4e;
+    --loss:#ff92a8;
+    --loss-dim:#5c3947;
+    --radius-sm:8px;
+    --radius:14px;
+    --radius-lg:22px;
+    --font-display:'Fraunces', serif;
+    --font-body:'Manrope', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:'';
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 85% -5%, rgba(242,198,217,0.08), transparent 60%),
+      radial-gradient(ellipse 700px 500px at -5% 100%, rgba(220,159,190,0.05), transparent 60%);
+    pointer-events:none; z-index:0;
+  }
+  a{color:inherit;}
+  ::selection{ background:var(--pink); color:#1a1015; }
+  ::-webkit-scrollbar{width:10px; height:10px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border-soft); border-radius:10px;}
+
+  .app{ display:flex; min-height:100vh; position:relative; z-index:1; }
+
+  .sidebar{
+    width:236px; flex-shrink:0;
+    background:linear-gradient(180deg, var(--bg-2), var(--bg));
+    border-right:1px solid var(--border);
+    padding:28px 18px;
+    display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{ padding:0 8px 18px 8px; border-bottom:1px solid var(--border); margin-bottom:16px;}
+  .brand-mark{ font-family:var(--font-display); font-weight:500; font-size:26px; letter-spacing:0.01em; color:var(--pink-soft); line-height:1.1;}
+  .brand-mark em{ font-style:italic; font-weight:300; color:var(--pink-deep);}
+  .brand-sub{ font-size:11.5px; color:var(--text-faint); margin-top:5px; letter-spacing:0.04em;}
+
+  .lang-toggle{ display:flex; gap:6px; margin-bottom:20px; padding:0 8px; }
+  .lang-btn{
+    flex:1; padding:6px 0; border-radius:8px; border:1px solid var(--border-soft); background:var(--surface);
+    color:var(--text-faint); font-size:11.5px; font-weight:800; letter-spacing:.04em; cursor:pointer;
+  }
+  .lang-btn.active{ background:var(--surface-2); color:var(--pink-soft); border-color:var(--pink-dim); }
+
+  .nav{ display:flex; flex-direction:column; gap:3px; }
+  .nav-btn{
+    display:flex; align-items:center; gap:11px;
+    padding:11px 12px; border-radius:var(--radius-sm);
+    background:transparent; border:none; color:var(--text-muted);
+    font-family:var(--font-body); font-size:14.5px; font-weight:600;
+    cursor:pointer; text-align:left; transition:background .15s, color .15s;
+  }
+  .nav-btn svg{ width:17px; height:17px; flex-shrink:0; opacity:.85;}
+  .nav-btn:hover{ background:var(--surface); color:var(--text); }
+  .nav-btn.active{ background:var(--surface-2); color:var(--pink-soft); box-shadow: inset 2px 0 0 var(--pink);}
+
+  .sidebar-foot{ margin-top:auto; padding-top:18px; border-top:1px solid var(--border); }
+  .balance-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px; }
+  .balance-label{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px;}
+  .balance-value{ font-family:var(--font-display); font-size:20px; color:var(--pink-soft); }
+  .balance-edit{ font-size:11px; color:var(--text-faint); margin-top:6px; cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
+  .balance-edit:hover{ color:var(--pink);}
+  .credit-line{ text-align:center; font-size:10.5px; color:var(--text-faint); margin-top:14px; letter-spacing:.03em; }
+  .credit-line span{ color:var(--pink-dim); font-weight:700; }
+
+  .main{ flex:1; min-width:0; padding:34px 38px 60px; }
+  .view{ display:none; }
+  .view.active{ display:block; animation:fadeIn .35s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  .page-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:26px; flex-wrap:wrap;}
+  .page-title{ font-family:var(--font-display); font-size:32px; font-weight:500; color:var(--text); margin:0 0 6px; }
+  .page-sub{ color:var(--text-muted); font-size:14px; margin:0; max-width:540px;}
+
+  .btn{
+    font-family:var(--font-body); font-weight:700; font-size:13.5px;
+    border-radius:999px; padding:11px 20px; border:1px solid transparent; cursor:pointer;
+    display:inline-flex; align-items:center; gap:8px; transition:transform .12s, filter .12s, background .15s;
+    white-space:nowrap;
+  }
+  .btn:active{ transform:scale(0.97); }
+  .btn-primary{ background:linear-gradient(135deg, var(--pink), var(--pink-deep)); color:#241019; }
+  .btn-primary:hover{ filter:brightness(1.07); }
+  .btn-ghost{ background:var(--surface); color:var(--text); border-color:var(--border-soft); }
+  .btn-ghost:hover{ background:var(--surface-2); border-color:var(--pink-dim); }
+  .btn-sm{ padding:7px 14px; font-size:12.5px; }
+  .btn-danger{ background:transparent; color:var(--loss); border-color:var(--loss-dim); }
+  .btn-danger:hover{ background:rgba(255,146,168,0.08); }
+
+  .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:26px; }
+  .stat-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
+  .stat-label{ font-size:11.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px;}
+  .stat-value{ font-family:var(--font-display); font-size:26px; color:var(--text); }
+  .stat-value.profit{ color:var(--profit); }
+  .stat-value.loss{ color:var(--loss); }
+  .stat-value.pink{ color:var(--pink-soft); }
+  .stat-note{ font-size:12px; color:var(--text-muted); margin-top:6px; }
+
+  .grid-2{ display:grid; grid-template-columns:1.4fr 1fr; gap:18px; margin-bottom:22px; align-items:start; }
+
+  .panel{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:22px; margin-bottom:22px; }
+  .panel:last-child{ margin-bottom:0; }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
+  .panel-title{ font-family:var(--font-display); font-size:19px; color:var(--pink-soft); font-weight:500; }
+  .panel-link{ font-size:12.5px; color:var(--text-muted); cursor:pointer; text-decoration:underline; text-underline-offset:3px;}
+  .panel-link:hover{ color:var(--pink); }
+
+  .empty{ text-align:center; padding:36px 12px; color:var(--text-faint); }
+  .empty-icon{ font-size:26px; margin-bottom:8px; opacity:.6; }
+  .empty-title{ color:var(--text-muted); font-weight:600; font-size:14px; margin-bottom:4px;}
+  .empty-sub{ font-size:12.5px; }
+
+  .trade-row{
+    display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:14px;
+    padding:13px 6px; border-bottom:1px solid var(--border); cursor:pointer;
+  }
+  .trade-row:last-child{ border-bottom:none; }
+  .trade-row:hover{ background:var(--surface-2); border-radius:var(--radius-sm); }
+  .dir-tag{ font-size:10.5px; font-weight:800; letter-spacing:.04em; padding:4px 9px; border-radius:999px; }
+  .dir-buy{ background:rgba(143,217,182,0.14); color:var(--profit); }
+  .dir-sell{ background:rgba(255,146,168,0.14); color:var(--loss); }
+  .trade-main .pair{ font-weight:700; font-size:14.5px; color:var(--text); }
+  .trade-main .meta{ font-size:12px; color:var(--text-faint); margin-top:2px;}
+  .trade-pnl{ font-family:var(--font-display); font-size:16px; text-align:right; }
+  .trade-pnl.profit{ color:var(--profit); }
+  .trade-pnl.loss{ color:var(--loss); }
+  .trade-pnl.open{ color:var(--text-faint); font-size:12.5px; font-family:var(--font-body); font-weight:700;}
+  .thumb{ width:38px; height:38px; border-radius:8px; object-fit:cover; border:1px solid var(--border-soft); }
+  .thumb-empty{ width:38px; height:38px; border-radius:8px; background:var(--surface-2); border:1px dashed var(--border-soft); }
+
+  .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+  .chip{
+    padding:7px 14px; border-radius:999px; background:var(--surface); border:1px solid var(--border-soft);
+    font-size:12.5px; color:var(--text-muted); cursor:pointer; font-weight:600;
+  }
+  .chip.active{ background:var(--surface-2); color:var(--pink-soft); border-color:var(--pink-dim); }
+  .search-input{
+    flex:1; min-width:160px; background:var(--surface); border:1px solid var(--border-soft); border-radius:999px;
+    padding:9px 16px; color:var(--text); font-family:var(--font-body); font-size:13px;
+  }
+  .search-input:focus{ outline:none; border-color:var(--pink-dim); }
+
+  .journal-list{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:6px 16px; }
+
+  .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .cal-nav{ display:flex; gap:8px; align-items:center; }
+  .cal-nav button{ background:var(--surface); border:1px solid var(--border-soft); color:var(--text); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px;}
+  .cal-nav button:hover{ background:var(--surface-2); }
+  .cal-today-btn{ width:auto !important; padding:0 12px !important; border-radius:16px !important; font-size:12px !important; }
+  .cal-month{ font-family:var(--font-display); font-size:20px; color:var(--pink-soft); min-width:170px; text-align:center;}
+  .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+  .cal-dow{ text-align:center; font-size:11px; color:var(--text-faint); font-weight:700; letter-spacing:.05em; padding-bottom:6px;}
+  .cal-cell{
+    aspect-ratio:1/0.85; border-radius:10px; background:var(--surface); border:1px solid var(--border);
+    padding:8px; cursor:pointer; display:flex; flex-direction:column; gap:5px; transition:background .15s, border-color .15s;
+    position:relative;
+  }
+  .cal-cell:hover{ border-color:var(--pink-dim); }
+  .cal-cell.empty{ background:transparent; border:none; cursor:default; }
+  .cal-cell.today{ box-shadow:0 0 0 1.5px var(--pink) inset; }
+  .cal-daynum{ font-size:12.5px; font-weight:700; color:var(--text-muted); }
+  .cal-cell.today .cal-daynum{ color:var(--pink-soft); }
+  .cal-dots{ display:flex; gap:4px; flex-wrap:wrap; margin-top:auto; }
+  .cal-dot{ width:6px; height:6px; border-radius:50%; }
+  .cal-dot.plan{ background:var(--pink); }
+  .cal-dot.trade-profit{ background:var(--profit); }
+  .cal-dot.trade-loss{ background:var(--loss); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(6,4,8,0.72); backdrop-filter:blur(3px);
+    display:none; align-items:flex-start; justify-content:center; z-index:50; padding:40px 20px; overflow-y:auto;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{
+    background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius-lg);
+    width:100%; max-width:620px; padding:28px; animation:pop .2s ease;
+  }
+  @keyframes pop{ from{opacity:0; transform:translateY(10px) scale(.98);} to{opacity:1; transform:none;} }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+  .modal-title{ font-family:var(--font-display); font-size:22px; color:var(--pink-soft); }
+  .modal-close{ background:none; border:none; color:var(--text-faint); font-size:22px; cursor:pointer; line-height:1; padding:4px;}
+  .modal-close:hover{ color:var(--text); }
+
+  .field{ margin-bottom:15px; }
+  .field label{ display:block; font-size:12px; color:var(--text-muted); margin-bottom:6px; font-weight:600; letter-spacing:.02em;}
+  .field input, .field select, .field textarea{
+    width:100%; background:var(--surface); border:1px solid var(--border-soft); border-radius:10px;
+    padding:11px 13px; color:var(--text); font-family:var(--font-body); font-size:14px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--pink-dim); }
+  .field textarea{ resize:vertical; min-height:70px; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .field-row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+
+  .toggle-pair{ display:flex; gap:8px; }
+  .toggle-pair button{
+    flex:1; padding:10px; border-radius:10px; border:1px solid var(--border-soft); background:var(--surface);
+    color:var(--text-muted); font-weight:700; font-size:13px; cursor:pointer;
+  }
+  .toggle-pair button.sel-buy.active{ background:rgba(143,217,182,0.14); color:var(--profit); border-color:var(--profit-dim); }
+  .toggle-pair button.sel-sell.active{ background:rgba(255,146,168,0.14); color:var(--loss); border-color:var(--loss-dim); }
+
+  .file-drop{
+    border:1.5px dashed var(--border-soft); border-radius:12px; padding:16px; text-align:center;
+    cursor:pointer; color:var(--text-faint); font-size:12.5px; position:relative; overflow:hidden;
+  }
+  .file-drop:hover{ border-color:var(--pink-dim); color:var(--text-muted); }
+  .file-drop img{ max-width:100%; max-height:150px; border-radius:8px; margin-top:8px; }
+  .file-drop input[type=file]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+
+  .tv-link{ display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--pink-deep); text-decoration:none; cursor:pointer; font-weight:700;}
+  .tv-link:hover{ color:var(--pink); }
+
+  .detail-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
+  .detail-item{ background:var(--surface); border:1px solid var(--border-soft); border-radius:10px; padding:10px 12px; }
+  .detail-item .k{ font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em;}
+  .detail-item .v{ font-size:14px; font-weight:700; margin-top:3px; }
+  .detail-shot{ width:100%; border-radius:12px; margin-top:10px; border:1px solid var(--border-soft); }
+  .note-box{ background:var(--surface); border:1px solid var(--border-soft); border-radius:12px; padding:14px; font-size:13.5px; color:var(--text-muted); line-height:1.55; margin-top:8px; white-space:pre-wrap;}
+
+  .live-chart-frame{ border-radius:12px; overflow:hidden; border:1px solid var(--border-soft); background:#0f0c13; }
+  .live-chart-frame iframe{ width:100%; border:0; display:block; background:#0f0c13; }
+  .live-chart-controls{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .symbol-input{
+    width:120px; background:var(--surface-2); border:1px solid var(--border-soft); border-radius:8px;
+    padding:7px 10px; color:var(--text); font-size:12.5px; font-family:var(--font-body); font-weight:700;
+  }
+  .symbol-input:focus{ outline:none; border-color:var(--pink-dim); }
+
+  .chart-box{ height:230px; position:relative; }
+  .chart-box.small{ height:190px; }
+
+  .psy-row{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .psy-label{ width:96px; font-size:12.5px; color:var(--text-muted); font-weight:600; }
+  .psy-bar-bg{ flex:1; height:7px; background:var(--surface-2); border-radius:99px; overflow:hidden; }
+  .psy-bar-fill{ height:100%; background:linear-gradient(90deg, var(--pink-deep), var(--pink)); border-radius:99px; }
+  .psy-count{ font-size:12px; color:var(--text-faint); width:26px; text-align:right; }
+
+  @media (max-width: 980px){
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .grid-2{ grid-template-columns:1fr; }
+    .field-row, .field-row3{ grid-template-columns:1fr; }
+    .detail-grid{ grid-template-columns:repeat(2,1fr); }
+  }
+  /* Bottom floating pill nav (mobile) */
+  .bottom-nav{
+    display:none;
+    position:fixed; left:50%; bottom:16px; transform:translateX(-50%);
+    z-index:40; gap:2px;
+    background:rgba(21,15,26,0.88);
+    backdrop-filter:blur(14px);
+    border:1px solid var(--border-soft);
+    border-radius:999px;
+    padding:7px 8px;
+    box-shadow:0 12px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .bn-item{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    background:none; border:none; color:var(--text-faint); cursor:pointer;
+    padding:8px 15px 7px; border-radius:999px; font-family:var(--font-body);
+    font-size:10px; font-weight:700; letter-spacing:.01em; transition:background .15s, color .15s;
+  }
+  .bn-item svg{ width:19px; height:19px; opacity:.9; }
+  .bn-item.active{ color:var(--pink-soft); background:var(--surface-2); }
+  .bn-item.active svg{ opacity:1; }
+
+  @media (max-width: 720px){
+    .app{ flex-direction:column; }
+    .sidebar{ position:relative; height:auto; width:100%; flex-direction:column; padding:14px 16px; }
+    .brand{ border:none; padding:0; margin:0 0 10px; }
+    .lang-toggle{ padding:0; max-width:140px; margin-bottom:0; }
+    .sidebar .nav{ display:none; }
+    .sidebar-foot{ display:none; }
+    .main{ padding:20px 16px 108px; }
+    .stat-grid{ grid-template-columns:repeat(2,1fr); }
+    .bottom-nav{ display:flex; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">Rosé <em>Ledger</em></div>
+      <div class="brand-sub" id="brand-sub">Jurnal & rencana trading</div>
+    </div>
+    <div class="lang-toggle">
+      <button class="lang-btn active" data-lang="id" onclick="setLang('id')">ID</button>
+      <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        <span id="nav-dashboard">Dashboard</span>
+      </button>
+      <button class="nav-btn" data-view="journal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg>
+        <span id="nav-journal">Jurnal Trading</span>
+      </button>
+      <button class="nav-btn" data-view="schedule">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+        <span id="nav-schedule">Jadwal</span>
+      </button>
+      <button class="nav-btn" data-view="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M11 19V4M18 19v-7"/></svg>
+        <span id="nav-stats">Statistik</span>
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="balance-card">
+        <div class="balance-label" id="balance-label">Saldo modal</div>
+        <div class="balance-value" id="sb-balance">$0</div>
+        <div class="balance-edit" id="sb-edit-balance">Atur saldo awal</div>
+      </div>
+      <div class="credit-line" id="credit-line">Dibuat oleh <span>Sheryn</span></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" id="greeting">Selamat datang kembali</h1>
+          <p class="page-sub" id="today-date"></p>
+        </div>
+        <button class="btn btn-primary" id="btn-add-trade-1" onclick="openTradeModal()">+ Catat Trade</button>
+      </div>
+
+      <div class="stat-grid" id="dash-stats"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title" id="live-chart-title">Chart Langsung</div>
+          <div class="live-chart-controls">
+            <input class="symbol-input" id="live-chart-symbol" value="XAUUSD">
+            <button class="btn btn-ghost btn-sm" id="live-chart-load-btn" onclick="loadLiveChart()">Tampilkan</button>
+            <span class="tv-link" id="live-chart-opentab" onclick="openLiveChartTab()">↗ Buka di tab baru</span>
+          </div>
+        </div>
+        <div class="live-chart-frame">
+          <iframe id="tv-iframe" height="420" src="" loading="lazy"></iframe>
+        </div>
+        <div class="stat-note" id="live-chart-note" style="margin-top:10px;">Chart real-time dari TradingView.</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-head">
+            <div class="panel-title" id="panel-equity-dash">Kurva Ekuitas</div>
+            <span class="panel-link" id="link-view-stats" onclick="switchView('stats')">Lihat statistik →</span>
+          </div>
+          <div class="chart-box"><canvas id="chart-equity-dash"></canvas></div>
+        </div>
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-head">
+            <div class="panel-title" id="panel-today-plan">Rencana Hari Ini</div>
+            <span class="panel-link" id="link-open-schedule" onclick="switchView('schedule')">Buka jadwal →</span>
+          </div>
+          <div id="today-plan"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title" id="panel-recent">Trade Terbaru</div>
+          <span class="panel-link" id="link-view-all" onclick="switchView('journal')">Lihat semua →</span>
+        </div>
+        <div id="recent-trades"></div>
+      </div>
+    </section>
+
+    <!-- JOURNAL -->
+    <section class="view" id="view-journal">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" id="journal-title">Jurnal Trading</h1>
+          <p class="page-sub" id="journal-sub">Semua catatan entry, TP/SL, hasil, dan screenshot chart kamu ada di sini.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-add-trade-2" onclick="openTradeModal()">+ Catat Trade</button>
+      </div>
+
+      <div class="toolbar">
+        <div class="chip active" data-filter="all" id="filter-all">Semua</div>
+        <div class="chip" data-filter="profit" id="filter-profit">Profit</div>
+        <div class="chip" data-filter="loss" id="filter-loss">Loss</div>
+        <div class="chip" data-filter="open" id="filter-open">Open</div>
+        <input class="search-input" id="journal-search" oninput="renderJournal()">
+      </div>
+
+      <div class="journal-list" id="journal-list"></div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section class="view" id="view-schedule">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" id="schedule-title">Jadwal Trading</h1>
+          <p class="page-sub" id="schedule-sub">Rencanakan sesi trading, target, dan batas risiko harian kamu.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-add-plan" onclick="openPlanModal(todayStr())">+ Tambah Rencana</button>
+      </div>
+
+      <div class="panel">
+        <div class="cal-head">
+          <div class="cal-month" id="cal-month"></div>
+          <div class="cal-nav">
+            <button onclick="calShift(-1)">‹</button>
+            <button class="cal-today-btn" id="cal-today-btn" onclick="calShift(0, true)">Hari ini</button>
+            <button onclick="calShift(1)">›</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="cal-dow-row"></div>
+        <div class="cal-grid" id="cal-grid" style="margin-top:6px;"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title" id="upcoming-title" style="margin-bottom:14px;">Rencana Mendatang</div>
+        <div id="upcoming-plans"></div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="view" id="view-stats">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" id="stats-title">Statistik</h1>
+          <p class="page-sub" id="stats-sub">Performa trading kamu dalam angka.</p>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="stats-cards"></div>
+
+      <div class="grid-2">
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-title" id="panel-equity-full" style="margin-bottom:14px;">Kurva Ekuitas</div>
+          <div class="chart-box"><canvas id="chart-equity-full"></canvas></div>
+        </div>
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-title" id="panel-winloss" style="margin-bottom:14px;">Win / Loss</div>
+          <div class="chart-box small"><canvas id="chart-winloss"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-title" id="panel-pair" style="margin-bottom:14px;">P/L per Pair</div>
+          <div class="chart-box"><canvas id="chart-pair"></canvas></div>
+        </div>
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-title" id="panel-psych" style="margin-bottom:14px;">Kondisi Psikologis saat Trading</div>
+          <div id="psy-breakdown"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- BOTTOM PILL NAV (mobile) -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bn-item nav-btn active" data-view="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    <span id="bn-dashboard">Dashboard</span>
+  </button>
+  <button class="bn-item nav-btn" data-view="journal">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg>
+    <span id="bn-journal">Jurnal</span>
+  </button>
+  <button class="bn-item nav-btn" data-view="schedule">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+    <span id="bn-schedule">Jadwal</span>
+  </button>
+  <button class="bn-item nav-btn" data-view="stats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M11 19V4M18 19v-7"/></svg>
+    <span id="bn-stats">Statistik</span>
+  </button>
+</nav>
+
+<!-- TRADE MODAL -->
+<div class="modal-overlay" id="trade-modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="trade-modal-title">Catat Trade Baru</div>
+      <button class="modal-close" onclick="closeModal('trade-modal-overlay')">&times;</button>
+    </div>
+    <input type="hidden" id="tf-id">
+    <div class="field">
+      <label id="lbl-pair">Pair / Aset</label>
+      <input id="tf-pair" list="pair-list" placeholder="cth. XAUUSD, EURUSD, BTCUSD">
+      <datalist id="pair-list">
+        <option value="XAUUSD"><option value="EURUSD"><option value="GBPUSD"><option value="USDJPY">
+        <option value="BTCUSD"><option value="ETHUSD"><option value="US30"><option value="NAS100">
+      </datalist>
+    </div>
+    <div class="field">
+      <label id="lbl-dir">Arah</label>
+      <div class="toggle-pair">
+        <button type="button" class="sel-buy active" id="btn-dir-buy" onclick="setDir('buy')">▲ Buy</button>
+        <button type="button" class="sel-sell" id="btn-dir-sell" onclick="setDir('sell')">▼ Sell</button>
+      </div>
+      <input type="hidden" id="tf-dir" value="buy">
+    </div>
+    <div class="field-row">
+      <div class="field"><label id="lbl-date">Tanggal</label><input type="date" id="tf-date"></div>
+      <div class="field"><label id="lbl-time">Jam Entry</label><input type="time" id="tf-time"></div>
+    </div>
+    <div class="field-row3">
+      <div class="field"><label id="lbl-entry">Harga Entry</label><input type="number" step="any" id="tf-entry" placeholder="0.00"></div>
+      <div class="field"><label id="lbl-tp">Take Profit</label><input type="number" step="any" id="tf-tp" placeholder="0.00"></div>
+      <div class="field"><label id="lbl-sl">Stop Loss</label><input type="number" step="any" id="tf-sl" placeholder="0.00"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label id="lbl-exit">Harga Exit (opsional)</label><input type="number" step="any" id="tf-exit"></div>
+      <div class="field"><label id="lbl-lot">Lot / Size</label><input type="number" step="any" id="tf-lot" placeholder="cth. 0.10"></div>
+    </div>
+    <div class="field">
+      <label id="lbl-pnl">Profit / Loss ($)</label>
+      <input type="number" step="any" id="tf-pnl">
+    </div>
+    <div class="field-row">
+      <div class="field"><label id="lbl-strategy">Strategi / Setup</label><input id="tf-strategy"></div>
+      <div class="field">
+        <label id="lbl-psych">Kondisi Psikologis</label>
+        <select id="tf-psych"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label id="lbl-notes">Catatan</label>
+      <textarea id="tf-notes"></textarea>
+    </div>
+    <div class="field">
+      <label id="lbl-screenshot">Screenshot Chart (opsional)</label>
+      <div class="file-drop" id="tf-drop">
+        <span id="tf-drop-text">Klik untuk upload screenshot TP/SL dari TradingView</span>
+        <input type="file" accept="image/*" id="tf-file" onchange="handleFile(event)">
+        <img id="tf-preview" style="display:none;">
+      </div>
+    </div>
+    <div class="field">
+      <span class="tv-link" id="tv-link-modal" onclick="openTV()">↗ Buka pair ini di TradingView</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="tf-delete" style="display:none;" onclick="deleteTradeConfirm()">Hapus</button>
+      <button class="btn btn-ghost" id="tf-cancel" onclick="closeModal('trade-modal-overlay')">Batal</button>
+      <button class="btn btn-primary" id="tf-save" onclick="saveTrade()">Simpan Trade</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRADE DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal-overlay">
+  <div class="modal" id="detail-modal-body"></div>
+</div>
+
+<!-- PLAN MODAL -->
+<div class="modal-overlay" id="plan-modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="plan-modal-title">Rencana Trading</div>
+      <button class="modal-close" onclick="closeModal('plan-modal-overlay')">&times;</button>
+    </div>
+    <input type="hidden" id="pf-id">
+    <div class="field"><label id="lbl-plan-date">Tanggal</label><input type="date" id="pf-date"></div>
+    <div class="field">
+      <label id="lbl-session">Sesi</label>
+      <select id="pf-session"></select>
+    </div>
+    <div class="field"><label id="lbl-pairs-watch">Pair yang dipantau</label><input id="pf-pairs"></div>
+    <div class="field-row">
+      <div class="field"><label id="lbl-target">Target Profit Harian ($)</label><input type="number" step="any" id="pf-target"></div>
+      <div class="field"><label id="lbl-maxloss">Batas Rugi Harian ($)</label><input type="number" step="any" id="pf-maxloss"></div>
+    </div>
+    <div class="field"><label id="lbl-goals">Tujuan & Fokus Hari Ini</label><textarea id="pf-goals"></textarea></div>
+    <div class="field">
+      <label><input type="checkbox" id="pf-done" style="width:auto; margin-right:8px;"><span id="lbl-plan-done">Rencana sudah dijalankan</span></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="pf-delete" style="display:none;" onclick="deletePlanConfirm()">Hapus</button>
+      <button class="btn btn-ghost" id="pf-cancel" onclick="closeModal('plan-modal-overlay')">Batal</button>
+      <button class="btn btn-primary" id="pf-save" onclick="savePlan()">Simpan Rencana</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ I18N ============ */
+const I18N = {
+  id: {
+    nav_dashboard:'Dashboard', nav_journal:'Jurnal Trading', nav_schedule:'Jadwal', nav_stats:'Statistik',
+    brand_sub:'Jurnal & rencana trading',
+    balance_label:'Saldo modal', balance_edit:'Atur saldo awal', credit:'Dibuat oleh',
+    greet_morning:'Selamat pagi.', greet_day:'Selamat siang.', greet_afternoon:'Selamat sore.', greet_evening:'Selamat malam.',
+    btn_add_trade:'+ Catat Trade',
+    stat_total_pnl:'Total P/L', stat_win_rate:'Win Rate', stat_total_trades:'Total Trade', stat_open:'Posisi Open',
+    note_closed:n=>`${n} trade selesai`, note_wl:(w,l)=>`${w}W / ${l}L`, note_alltime:'Sepanjang waktu', note_unclosed:'Belum ditutup',
+    live_chart:'Chart Langsung', live_chart_note:'Chart real-time dari TradingView. Jika tidak muncul (diblokir browser/keamanan situs), gunakan tombol buka di tab baru.',
+    live_chart_load:'Tampilkan', live_chart_opentab:'↗ Buka di tab baru',
+    panel_equity:'Kurva Ekuitas', link_view_stats:'Lihat statistik →',
+    panel_today_plan:'Rencana Hari Ini', link_open_schedule:'Buka jadwal →',
+    panel_recent:'Trade Terbaru', link_view_all:'Lihat semua →',
+    empty_plan_title:'Belum ada rencana hari ini', empty_plan_sub:'Susun target & fokus tradingmu.', btn_create_plan:'+ Buat Rencana',
+    empty_trades_title:'Belum ada trade tercatat', empty_trades_sub:'Mulai catat trade pertamamu.',
+    journal_title:'Jurnal Trading', journal_sub:'Semua catatan entry, TP/SL, hasil, dan screenshot chart kamu ada di sini.',
+    filter_all:'Semua', filter_profit:'Profit', filter_loss:'Loss', filter_open:'Open',
+    search_ph:'Cari pair, strategi, catatan…',
+    empty_found_title:'Tidak ada trade ditemukan', empty_found_sub:'Coba ubah filter atau pencarian.',
+    schedule_title:'Jadwal Trading', schedule_sub:'Rencanakan sesi trading, target, dan batas risiko harian kamu.',
+    btn_add_plan:'+ Tambah Rencana', today_btn:'Hari ini',
+    upcoming_title:'Rencana Mendatang', empty_upcoming_title:'Belum ada rencana mendatang',
+    stats_title:'Statistik', stats_sub:'Performa trading kamu dalam angka.',
+    stat_avg_win:'Rata² Profit', stat_avg_loss:'Rata² Loss',
+    panel_winloss:'Win / Loss', panel_pair:'P/L per Pair', panel_psych:'Kondisi Psikologis saat Trading',
+    psych_no_data:'Belum ada data.',
+    modal_new_trade:'Catat Trade Baru', modal_edit_trade:'Edit Trade',
+    lbl_pair:'Pair / Aset', lbl_dir:'Arah', buy:'▲ Buy', sell:'▼ Sell',
+    lbl_date:'Tanggal', lbl_time:'Jam Entry',
+    lbl_entry:'Harga Entry', lbl_tp:'Take Profit', lbl_sl:'Stop Loss',
+    lbl_exit:'Harga Exit (opsional)', ph_exit:'Kosongkan jika masih open',
+    lbl_lot:'Lot / Size',
+    lbl_pnl:'Profit / Loss ($) — isi manual, kosongkan jika masih open', ph_pnl:'cth. 45.50 atau -20',
+    lbl_strategy:'Strategi / Setup', ph_strategy:'cth. Breakout, Pullback MA',
+    lbl_psych:'Kondisi Psikologis',
+    lbl_notes:'Catatan', ph_notes:'Alasan entry, apa yang terjadi, pelajaran…',
+    lbl_screenshot:'Screenshot Chart (opsional)', ph_drop:'Klik untuk upload screenshot TP/SL dari TradingView',
+    tv_open:'↗ Buka pair ini di TradingView', tv_open_named:p=>`↗ Buka ${p} di TradingView`,
+    btn_delete:'Hapus', btn_cancel:'Batal', btn_save_trade:'Simpan Trade',
+    confirm_delete_trade:'Hapus trade ini secara permanen?',
+    modal_plan:'Rencana Trading',
+    lbl_session:'Sesi', session_asia:'Sesi Asia', session_london:'Sesi London', session_ny:'Sesi New York', session_allday:'Sepanjang hari',
+    lbl_pairs_watch:'Pair yang dipantau', ph_pairs_watch:'cth. XAUUSD, EURUSD',
+    lbl_target:'Target Profit Harian ($)', lbl_maxloss:'Batas Rugi Harian ($)',
+    lbl_goals:'Tujuan & Fokus Hari Ini', ph_goals:'cth. Hanya entry sesuai plan, max 3 posisi',
+    lbl_plan_done:'Rencana sudah dijalankan',
+    btn_save_plan:'Simpan Rencana', confirm_delete_plan:'Hapus rencana tanggal ini?',
+    risk_reward:'Risk : Reward', result:'Hasil', result_open:'Masih Open',
+    strategy_colon:'Strategi:', psych_colon:'Psikologis:', no_notes:'Tidak ada catatan.',
+    edit_trade_btn:'Edit Trade', close:'Tutup',
+    prompt_balance:'Masukkan saldo modal awal ($):',
+    storage_error:'Gagal menyimpan data. Storage mungkin penuh (screenshot terlalu besar).',
+    psych_calm:'Tenang', psych_disciplined:'Disiplin', psych_doubtful:'Ragu', psych_greedy:'Serakah', psych_fearful:'Takut', psych_fomo:'FOMO',
+    plan_no_pairs:'Belum ada pair', plan_done_check:'✓ Selesai', plan_label:'Rencana',
+    detail_entry:'Entry', detail_tp:'Take Profit', detail_sl:'Stop Loss', detail_exit:'Exit', detail_lot:'Lot / Size',
+    fill_pair_alert:'Isi pair / aset dulu ya.', no_notes_yet:'Belum ada catatan.'
+  },
+  en: {
+    nav_dashboard:'Dashboard', nav_journal:'Trade Journal', nav_schedule:'Schedule', nav_stats:'Statistics',
+    brand_sub:'Trading journal & planner',
+    balance_label:'Account balance', balance_edit:'Set starting balance', credit:'Created by',
+    greet_morning:'Good morning.', greet_day:'Good afternoon.', greet_afternoon:'Good afternoon.', greet_evening:'Good evening.',
+    btn_add_trade:'+ Log Trade',
+    stat_total_pnl:'Total P/L', stat_win_rate:'Win Rate', stat_total_trades:'Total Trades', stat_open:'Open Positions',
+    note_closed:n=>`${n} closed trades`, note_wl:(w,l)=>`${w}W / ${l}L`, note_alltime:'All time', note_unclosed:'Still open',
+    live_chart:'Live Chart', live_chart_note:'Real-time chart from TradingView. If it does not load (blocked by browser/site security), use the open-in-new-tab button.',
+    live_chart_load:'Load', live_chart_opentab:'↗ Open in new tab',
+    panel_equity:'Equity Curve', link_view_stats:'View statistics →',
+    panel_today_plan:"Today's Plan", link_open_schedule:'Open schedule →',
+    panel_recent:'Recent Trades', link_view_all:'View all →',
+    empty_plan_title:'No plan for today yet', empty_plan_sub:'Set your goals & focus for the day.', btn_create_plan:'+ Create Plan',
+    empty_trades_title:'No trades logged yet', empty_trades_sub:'Start logging your first trade.',
+    journal_title:'Trade Journal', journal_sub:'All your entries, TP/SL, results, and chart screenshots live here.',
+    filter_all:'All', filter_profit:'Profit', filter_loss:'Loss', filter_open:'Open',
+    search_ph:'Search pair, strategy, notes…',
+    empty_found_title:'No trades found', empty_found_sub:'Try changing the filter or search.',
+    schedule_title:'Trading Schedule', schedule_sub:'Plan your sessions, targets, and daily risk limits.',
+    btn_add_plan:'+ Add Plan', today_btn:'Today',
+    upcoming_title:'Upcoming Plans', empty_upcoming_title:'No upcoming plans yet',
+    stats_title:'Statistics', stats_sub:'Your trading performance, in numbers.',
+    stat_avg_win:'Avg. Profit', stat_avg_loss:'Avg. Loss',
+    panel_winloss:'Win / Loss', panel_pair:'P/L by Pair', panel_psych:'Psychological State While Trading',
+    psych_no_data:'No data yet.',
+    modal_new_trade:'Log New Trade', modal_edit_trade:'Edit Trade',
+    lbl_pair:'Pair / Asset', lbl_dir:'Direction', buy:'▲ Buy', sell:'▼ Sell',
+    lbl_date:'Date', lbl_time:'Entry Time',
+    lbl_entry:'Entry Price', lbl_tp:'Take Profit', lbl_sl:'Stop Loss',
+    lbl_exit:'Exit Price (optional)', ph_exit:'Leave empty if still open',
+    lbl_lot:'Lot / Size',
+    lbl_pnl:'Profit / Loss ($) — enter manually, leave empty if still open', ph_pnl:'e.g. 45.50 or -20',
+    lbl_strategy:'Strategy / Setup', ph_strategy:'e.g. Breakout, MA Pullback',
+    lbl_psych:'Psychological State',
+    lbl_notes:'Notes', ph_notes:'Reason for entry, what happened, lessons learned…',
+    lbl_screenshot:'Chart Screenshot (optional)', ph_drop:'Click to upload a TP/SL screenshot from TradingView',
+    tv_open:'↗ Open this pair on TradingView', tv_open_named:p=>`↗ Open ${p} on TradingView`,
+    btn_delete:'Delete', btn_cancel:'Cancel', btn_save_trade:'Save Trade',
+    confirm_delete_trade:'Permanently delete this trade?',
+    modal_plan:'Trading Plan',
+    lbl_session:'Session', session_asia:'Asian Session', session_london:'London Session', session_ny:'New York Session', session_allday:'All day',
+    lbl_pairs_watch:'Pairs to watch', ph_pairs_watch:'e.g. XAUUSD, EURUSD',
+    lbl_target:'Daily Profit Target ($)', lbl_maxloss:'Daily Loss Limit ($)',
+    lbl_goals:"Today's Goals & Focus", ph_goals:'e.g. Only enter per plan, max 3 positions',
+    lbl_plan_done:'Plan has been carried out',
+    btn_save_plan:'Save Plan', confirm_delete_plan:'Delete this plan?',
+    risk_reward:'Risk : Reward', result:'Result', result_open:'Still Open',
+    strategy_colon:'Strategy:', psych_colon:'Mindset:', no_notes:'No notes.',
+    edit_trade_btn:'Edit Trade', close:'Close',
+    prompt_balance:'Enter your starting balance ($):',
+    storage_error:'Failed to save data. Storage may be full (screenshot too large).',
+    psych_calm:'Calm', psych_disciplined:'Disciplined', psych_doubtful:'Doubtful', psych_greedy:'Greedy', psych_fearful:'Fearful', psych_fomo:'FOMO',
+    plan_no_pairs:'No pairs yet', plan_done_check:'✓ Done', plan_label:'Plan',
+    detail_entry:'Entry', detail_tp:'Take Profit', detail_sl:'Stop Loss', detail_exit:'Exit', detail_lot:'Lot / Size',
+    fill_pair_alert:'Please fill in the pair / asset first.', no_notes_yet:'No notes yet.'
+  }
+};
+const PSYCH_KEYS = ['calm','disciplined','doubtful','greedy','fearful','fomo'];
+const SESSION_KEYS = ['asia','london','ny','allday'];
+
+/* ============ STORAGE ============ */
+const STORE_KEY = 'roseLedger_v1';
+function loadStore(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ console.error('Load error', e); }
+  return { trades: [], plans: [], balance: 1000, lang: 'id' };
+}
+function saveStore(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }
+  catch(e){ console.error('Save error', e); alert(t('storage_error')); }
+}
+let store = loadStore();
+let currentLang = store.lang || 'id';
+
+/* ============ UTIL ============ */
+function t(key){ const v = I18N[currentLang][key]; return v === undefined ? key : v; }
+function localeTag(){ return currentLang === 'id' ? 'id-ID' : 'en-US'; }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ const d = new Date(); return d.toISOString().slice(0,10); }
+function fmtMoney(n){
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtDate(s){
+  if(!s) return '';
+  const d = new Date(s + 'T00:00:00');
+  return d.toLocaleDateString(localeTag(), {day:'numeric', month:'short', year:'numeric'});
+}
+function tradeStatus(t){
+  if(t.pnl === null || t.pnl === undefined || t.pnl === '') return 'open';
+  const p = parseFloat(t.pnl);
+  if(p > 0) return 'profit';
+  if(p < 0) return 'loss';
+  return 'breakeven';
+}
+function psychLabel(key){ return key ? t('psych_'+key) : ''; }
+function sessionLabel(key){ return key ? t('session_'+key) : ''; }
+
+/* ============ LANGUAGE SWITCH ============ */
+function setLang(lang){
+  currentLang = lang;
+  store.lang = lang;
+  saveStore();
+  document.querySelectorAll('.lang-btn').forEach(b=> b.classList.toggle('active', b.dataset.lang===lang));
+  applyStaticI18n();
+  renderAll();
+}
+const STATIC_TEXT_MAP = {
+  'nav-dashboard':'nav_dashboard', 'nav-journal':'nav_journal', 'nav-schedule':'nav_schedule', 'nav-stats':'nav_stats',
+  'bn-dashboard':'nav_dashboard', 'bn-journal':'nav_journal', 'bn-schedule':'nav_schedule', 'bn-stats':'nav_stats',
+  'brand-sub':'brand_sub', 'balance-label':'balance_label', 'sb-edit-balance':'balance_edit',
+  'btn-add-trade-1':'btn_add_trade', 'btn-add-trade-2':'btn_add_trade', 'btn-add-plan':'btn_add_plan',
+  'live-chart-title':'live_chart', 'live-chart-load-btn':'live_chart_load', 'live-chart-opentab':'live_chart_opentab', 'live-chart-note':'live_chart_note',
+  'panel-equity-dash':'panel_equity', 'panel-equity-full':'panel_equity', 'link-view-stats':'link_view_stats',
+  'panel-today-plan':'panel_today_plan', 'link-open-schedule':'link_open_schedule',
+  'panel-recent':'panel_recent', 'link-view-all':'link_view_all',
+  'journal-title':'journal_title', 'journal-sub':'journal_sub',
+  'filter-all':'filter_all', 'filter-profit':'filter_profit', 'filter-loss':'filter_loss', 'filter-open':'filter_open',
+  'schedule-title':'schedule_title', 'schedule-sub':'schedule_sub', 'cal-today-btn':'today_btn', 'upcoming-title':'upcoming_title',
+  'stats-title':'stats_title', 'stats-sub':'stats_sub',
+  'panel-winloss':'panel_winloss', 'panel-pair':'panel_pair', 'panel-psych':'panel_psych',
+  'lbl-pair':'lbl_pair', 'lbl-dir':'lbl_dir', 'btn-dir-buy':'buy', 'btn-dir-sell':'sell',
+  'lbl-date':'lbl_date', 'lbl-time':'lbl_time', 'lbl-entry':'lbl_entry', 'lbl-tp':'lbl_tp', 'lbl-sl':'lbl_sl',
+  'lbl-exit':'lbl_exit', 'lbl-lot':'lbl_lot', 'lbl-pnl':'lbl_pnl', 'lbl-strategy':'lbl_strategy', 'lbl-psych':'lbl_psych',
+  'lbl-notes':'lbl_notes', 'lbl-screenshot':'lbl_screenshot', 'tv-link-modal':'tv_open',
+  'tf-delete':'btn_delete', 'tf-cancel':'btn_cancel', 'tf-save':'btn_save_trade',
+  'plan-modal-title':'modal_plan', 'lbl-plan-date':'lbl_date', 'lbl-session':'lbl_session',
+  'lbl-pairs-watch':'lbl_pairs_watch', 'lbl-target':'lbl_target', 'lbl-maxloss':'lbl_maxloss', 'lbl-goals':'lbl_goals',
+  'lbl-plan-done':'lbl_plan_done', 'pf-delete':'btn_delete', 'pf-cancel':'btn_cancel', 'pf-save':'btn_save_plan'
+};
+const STATIC_PLACEHOLDER_MAP = {
+  'journal-search':'search_ph', 'tf-exit':'ph_exit', 'tf-pnl':'ph_pnl', 'tf-strategy':'ph_strategy',
+  'tf-notes':'ph_notes', 'tf-drop-text':'ph_drop', 'pf-pairs':'ph_pairs_watch', 'pf-goals':'ph_goals'
+};
+function applyStaticI18n(){
+  Object.entries(STATIC_TEXT_MAP).forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = t(key);
+  });
+  Object.entries(STATIC_PLACEHOLDER_MAP).forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(el.tagName === 'SPAN') el.textContent = t(key); else el.placeholder = t(key);
+  });
+  document.getElementById('credit-line').innerHTML = t('credit') + ' <span>Sheryn</span>';
+  document.documentElement.lang = currentLang;
+}
+
+/* ============ NAV ============ */
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchView(btn.dataset.view));
+});
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+  if(name==='dashboard') renderDashboard();
+  if(name==='journal') renderJournal();
+  if(name==='schedule') renderCalendar();
+  if(name==='stats') renderStats();
+}
+
+/* ============ GREETING / BALANCE ============ */
+function renderHeader(){
+  const hour = new Date().getHours();
+  const greet = hour < 11 ? t('greet_morning') : hour < 15 ? t('greet_day') : hour < 18 ? t('greet_afternoon') : t('greet_evening');
+  document.getElementById('greeting').textContent = greet;
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString(localeTag(), {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  document.getElementById('sb-balance').textContent = fmtMoney(store.balance || 0);
+}
+document.getElementById('sb-edit-balance').onclick = ()=>{
+  const v = prompt(t('prompt_balance'), store.balance || 0);
+  if(v !== null && !isNaN(parseFloat(v))){
+    store.balance = parseFloat(v);
+    saveStore(); renderHeader(); renderDashboard(); renderStats();
+  }
+};
+
+/* ============ LIVE TRADINGVIEW CHART ============ */
+const SYMBOL_MAP = {
+  'XAUUSD':'OANDA:XAUUSD', 'XAGUSD':'OANDA:XAGUSD',
+  'EURUSD':'FX:EURUSD', 'GBPUSD':'FX:GBPUSD', 'USDJPY':'FX:USDJPY', 'AUDUSD':'FX:AUDUSD',
+  'USDCHF':'FX:USDCHF', 'USDCAD':'FX:USDCAD', 'NZDUSD':'FX:NZDUSD', 'EURJPY':'FX:EURJPY',
+  'GBPJPY':'FX:GBPJPY', 'EURGBP':'FX:EURGBP', 'AUDJPY':'FX:AUDJPY',
+  'BTCUSD':'COINBASE:BTCUSD', 'ETHUSD':'COINBASE:ETHUSD', 'BTCUSDT':'BINANCE:BTCUSDT', 'ETHUSDT':'BINANCE:ETHUSDT',
+  'US30':'FOREXCOM:US30', 'NAS100':'FOREXCOM:NAS100', 'SPX500':'FOREXCOM:SPXUSD', 'US500':'FOREXCOM:SPXUSD',
+  'GER40':'FOREXCOM:GER40', 'UK100':'FOREXCOM:UK100', 'JPN225':'FOREXCOM:JPN225'
+};
+function resolveSymbol(input){
+  const s = (input || 'XAUUSD').toUpperCase().trim();
+  if(!s) return 'OANDA:XAUUSD';
+  if(s.includes(':')) return s; // user already gave an exchange-prefixed symbol
+  return SYMBOL_MAP[s] || ('FX:' + s);
+}
+function tvEmbedSrc(symbol){
+  const sym = resolveSymbol(symbol);
+  return `https://www.tradingview.com/widgetembed/?symbol=${encodeURIComponent(sym)}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=0c0910&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&hideideas=1&studies=%5B%5D&hide_top_toolbar=0`;
+}
+function tvChartUrl(symbol){
+  return 'https://www.tradingview.com/chart/?symbol=' + encodeURIComponent(resolveSymbol(symbol));
+}
+function loadLiveChart(){
+  const sym = document.getElementById('live-chart-symbol').value.trim() || 'XAUUSD';
+  document.getElementById('tv-iframe').src = tvEmbedSrc(sym);
+  liveChartLoaded = true;
+}
+function openLiveChartTab(){
+  const sym = document.getElementById('live-chart-symbol').value.trim() || 'XAUUSD';
+  window.open(tvChartUrl(sym), '_blank');
+}
+
+/* ============ STATS ENGINE ============ */
+function computeStats(){
+  const closed = store.trades.filter(x => tradeStatus(x) !== 'open');
+  const wins = closed.filter(x => tradeStatus(x) === 'profit');
+  const losses = closed.filter(x => tradeStatus(x) === 'loss');
+  const totalPnl = closed.reduce((s,x)=> s + parseFloat(x.pnl || 0), 0);
+  const winRate = closed.length ? (wins.length/closed.length*100) : 0;
+  const avgWin = wins.length ? wins.reduce((s,x)=>s+parseFloat(x.pnl),0)/wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((s,x)=>s+parseFloat(x.pnl),0)/losses.length : 0;
+  const openCount = store.trades.filter(x=>tradeStatus(x)==='open').length;
+  return { closed, wins, losses, totalPnl, winRate, avgWin, avgLoss, openCount };
+}
+function equityCurveData(){
+  const sorted = [...store.trades].filter(x=>tradeStatus(x)!=='open')
+    .sort((a,b)=> (a.date+ (a.time||'')).localeCompare(b.date+(b.time||'')));
+  let cum = store.balance || 0;
+  const labels = [currentLang==='id' ? 'Awal' : 'Start'];
+  const data = [cum];
+  sorted.forEach(x=>{
+    cum += parseFloat(x.pnl || 0);
+    labels.push(fmtDate(x.date));
+    data.push(cum);
+  });
+  return { labels, data };
+}
+
+/* ============ DASHBOARD ============ */
+let chartEquityDash, chartEquityFull, chartWinLoss, chartPair;
+let liveChartLoaded = false;
+function renderDashboard(){
+  renderHeader();
+  const s = computeStats();
+  const grid = document.getElementById('dash-stats');
+  grid.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">${t('stat_total_pnl')}</div>
+      <div class="stat-value ${s.totalPnl>0?'profit':s.totalPnl<0?'loss':''}">${fmtMoney(s.totalPnl)}</div>
+      <div class="stat-note">${t('note_closed')(s.closed.length)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${t('stat_win_rate')}</div>
+      <div class="stat-value pink">${s.winRate.toFixed(1)}%</div>
+      <div class="stat-note">${t('note_wl')(s.wins.length, s.losses.length)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${t('stat_total_trades')}</div>
+      <div class="stat-value">${store.trades.length}</div>
+      <div class="stat-note">${t('note_alltime')}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">${t('stat_open')}</div>
+      <div class="stat-value pink">${s.openCount}</div>
+      <div class="stat-note">${t('note_unclosed')}</div>
+    </div>
+  `;
+
+  if(!liveChartLoaded){ loadLiveChart(); }
+
+  const eq = equityCurveData();
+  if(chartEquityDash) chartEquityDash.destroy();
+  chartEquityDash = new Chart(document.getElementById('chart-equity-dash'), equityChartConfig(eq));
+
+  const plan = store.plans.find(p=>p.date === todayStr());
+  const planBox = document.getElementById('today-plan');
+  if(plan){
+    planBox.innerHTML = `
+      <div class="stat-note" style="margin-bottom:8px; color:var(--text-muted); font-weight:700;">${sessionLabel(plan.session)}</div>
+      <div class="detail-item" style="margin-bottom:8px;"><div class="k">${t('lbl_pairs_watch')}</div><div class="v" style="font-size:13px;">${esc(plan.pairs)||t('plan_no_pairs')}</div></div>
+      <div class="field-row" style="margin-bottom:8px;">
+        <div class="detail-item"><div class="k">${t('lbl_target')}</div><div class="v profit" style="font-size:13px;">${fmtMoney(parseFloat(plan.target||0))}</div></div>
+        <div class="detail-item"><div class="k">${t('lbl_maxloss')}</div><div class="v loss" style="font-size:13px;">${fmtMoney(-Math.abs(parseFloat(plan.maxloss||0)))}</div></div>
+      </div>
+      <div class="note-box">${esc(plan.goals)||t('no_notes_yet')}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:12px;" onclick="openPlanModal('${todayStr()}')">${t('edit_trade_btn')==='Edit Trade'?(currentLang==='id'?'Edit rencana':'Edit plan'):''}</button>
+    `;
+  } else {
+    planBox.innerHTML = `<div class="empty"><div class="empty-icon">🌷</div><div class="empty-title">${t('empty_plan_title')}</div><div class="empty-sub">${t('empty_plan_sub')}</div><button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="openPlanModal(todayStr())">${t('btn_create_plan')}</button></div>`;
+  }
+
+  const recentBox = document.getElementById('recent-trades');
+  const recent = [...store.trades].sort((a,b)=> (b.date+(b.time||'')).localeCompare(a.date+(a.time||''))).slice(0,5);
+  recentBox.innerHTML = recent.length ? recent.map(tradeRowHtml).join('') :
+    `<div class="empty"><div class="empty-icon">📓</div><div class="empty-title">${t('empty_trades_title')}</div><div class="empty-sub">${t('empty_trades_sub')}</div></div>`;
+  bindTradeRowClicks(recentBox);
+}
+
+function equityChartConfig(eq){
+  return {
+    type:'line',
+    data:{ labels: eq.labels, datasets:[{
+      data: eq.data, borderColor:'#f2c6d9', backgroundColor:'rgba(242,198,217,0.12)',
+      fill:true, tension:.35, pointRadius:0, borderWidth:2.2
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: c => fmtMoney(c.raw) } } },
+      scales:{
+        x:{ ticks:{ color:'#a8969f', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:6 }, grid:{ color:'rgba(255,255,255,0.04)' } },
+        y:{ ticks:{ color:'#a8969f', font:{size:10}, callback:v=>fmtMoney(v) }, grid:{ color:'rgba(255,255,255,0.05)' } }
+      }
+    }
+  };
+}
+
+/* ============ TRADE ROW / DETAIL ============ */
+function tradeRowHtml(x){
+  const status = tradeStatus(x);
+  const pnlClass = status === 'profit' ? 'profit' : status === 'loss' ? 'loss' : 'open';
+  const pnlText = status === 'open' ? t('result_open').toUpperCase() : fmtMoney(parseFloat(x.pnl));
+  return `
+  <div class="trade-row" data-id="${x.id}">
+    ${x.screenshot ? `<img class="thumb" src="${x.screenshot}">` : `<div class="thumb-empty"></div>`}
+    <div class="trade-main">
+      <div class="pair">${esc(x.pair)} <span class="dir-tag ${x.dir==='buy'?'dir-buy':'dir-sell'}">${x.dir==='buy'?'BUY':'SELL'}</span></div>
+      <div class="meta">${fmtDate(x.date)} · ${esc(x.strategy)||'—'}</div>
+    </div>
+    <div class="meta" style="text-align:right;">${psychLabel(x.psych)}</div>
+    <div class="trade-pnl ${pnlClass}">${pnlText}</div>
+  </div>`;
+}
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function bindTradeRowClicks(container){
+  container.querySelectorAll('.trade-row').forEach(row=>{
+    row.addEventListener('click', ()=> openTradeDetail(row.dataset.id));
+  });
+}
+
+function openTradeDetail(id){
+  const x = store.trades.find(v=>v.id===id);
+  if(!x) return;
+  const status = tradeStatus(x);
+  const risk = (x.entry!=null && x.sl!=null) ? Math.abs(x.entry - x.sl) : null;
+  const reward = (x.entry!=null && x.tp!=null) ? Math.abs(x.tp - x.entry) : null;
+  const rr = (risk && reward && risk>0) ? (reward/risk).toFixed(2) : '—';
+  document.getElementById('detail-modal-body').innerHTML = `
+    <div class="modal-head">
+      <div class="modal-title">${esc(x.pair)} <span class="dir-tag ${x.dir==='buy'?'dir-buy':'dir-sell'}" style="margin-left:8px;">${x.dir==='buy'?'BUY':'SELL'}</span></div>
+      <button class="modal-close" onclick="closeModal('detail-modal-overlay')">&times;</button>
+    </div>
+    <div class="stat-note">${fmtDate(x.date)}${x.time? ' · '+x.time : ''}</div>
+    <div class="detail-grid">
+      <div class="detail-item"><div class="k">${t('detail_entry')}</div><div class="v">${x.entry ?? '—'}</div></div>
+      <div class="detail-item"><div class="k">${t('detail_tp')}</div><div class="v profit">${x.tp ?? '—'}</div></div>
+      <div class="detail-item"><div class="k">${t('detail_sl')}</div><div class="v loss">${x.sl ?? '—'}</div></div>
+      <div class="detail-item"><div class="k">${t('detail_exit')}</div><div class="v">${x.exit ?? '—'}</div></div>
+      <div class="detail-item"><div class="k">${t('detail_lot')}</div><div class="v">${x.lot ?? '—'}</div></div>
+      <div class="detail-item"><div class="k">${t('risk_reward')}</div><div class="v">1 : ${rr}</div></div>
+    </div>
+    <div class="detail-item" style="margin-bottom:12px;">
+      <div class="k">${t('result')}</div>
+      <div class="v ${status==='profit'?'profit':status==='loss'?'loss':''}" style="font-size:20px; font-family:var(--font-display);">
+        ${status==='open' ? t('result_open') : fmtMoney(parseFloat(x.pnl))}
+      </div>
+    </div>
+    <div class="stat-note" style="margin-bottom:4px;">${t('strategy_colon')} <strong style="color:var(--text);">${esc(x.strategy)||'—'}</strong> · ${t('psych_colon')} <strong style="color:var(--text);">${psychLabel(x.psych)||'—'}</strong></div>
+    <div class="note-box">${esc(x.notes) || t('no_notes')}</div>
+    ${x.screenshot ? `<img class="detail-shot" src="${x.screenshot}">` : ''}
+    <div class="field" style="margin-top:14px;">
+      <div class="live-chart-frame">
+        <iframe style="height:260px;" src="${tvEmbedSrc(x.pair)}" loading="lazy"></iframe>
+      </div>
+      <div class="stat-note" style="margin-top:8px;">${t('live_chart_note')}</div>
+      <span class="tv-link" style="margin-top:8px; display:inline-block;" onclick="window.open(tvChartUrl('${x.pair.replace(/'/g,"\\'")}'),'_blank')">${t('tv_open_named')(esc(x.pair))}</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('detail-modal-overlay')">${t('close')}</button>
+      <button class="btn btn-primary" onclick="closeModal('detail-modal-overlay'); openTradeModal('${x.id}')">${t('edit_trade_btn')}</button>
+    </div>
+  `;
+  document.getElementById('detail-modal-overlay').classList.add('open');
+}
+
+/* ============ JOURNAL VIEW ============ */
+let currentFilter = 'all';
+document.querySelectorAll('.chip').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
+    c.classList.add('active');
+    currentFilter = c.dataset.filter;
+    renderJournal();
+  });
+});
+function renderJournal(){
+  const q = (document.getElementById('journal-search').value || '').toLowerCase();
+  let list = [...store.trades].sort((a,b)=> (b.date+(b.time||'')).localeCompare(a.date+(a.time||'')));
+  if(currentFilter !== 'all') list = list.filter(x=> tradeStatus(x) === currentFilter);
+  if(q) list = list.filter(x=> (x.pair||'').toLowerCase().includes(q) || (x.strategy||'').toLowerCase().includes(q) || (x.notes||'').toLowerCase().includes(q));
+  const box = document.getElementById('journal-list');
+  box.innerHTML = list.length ? list.map(tradeRowHtml).join('') :
+    `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">${t('empty_found_title')}</div><div class="empty-sub">${t('empty_found_sub')}</div></div>`;
+  bindTradeRowClicks(box);
+}
+
+/* ============ TRADE MODAL LOGIC ============ */
+function setDir(dir){
+  document.getElementById('tf-dir').value = dir;
+  document.getElementById('btn-dir-buy').classList.toggle('active', dir==='buy');
+  document.getElementById('btn-dir-sell').classList.toggle('active', dir==='sell');
+}
+function openTV(){
+  const pair = document.getElementById('tf-pair').value.trim() || 'EURUSD';
+  window.open(tvChartUrl(pair), '_blank');
+}
+function populatePsychOptions(selected){
+  const sel = document.getElementById('tf-psych');
+  sel.innerHTML = PSYCH_KEYS.map(k=>`<option value="${k}" ${k===selected?'selected':''}>${t('psych_'+k)}</option>`).join('');
+}
+function populateSessionOptions(selected){
+  const sel = document.getElementById('pf-session');
+  sel.innerHTML = SESSION_KEYS.map(k=>`<option value="${k}" ${k===selected?'selected':''}>${t('session_'+k)}</option>`).join('');
+}
+function openTradeModal(id){
+  document.getElementById('trade-modal-title').textContent = id ? t('modal_edit_trade') : t('modal_new_trade');
+  document.getElementById('tf-delete').style.display = id ? 'inline-flex' : 'none';
+  if(id){
+    const x = store.trades.find(v=>v.id===id);
+    document.getElementById('tf-id').value = x.id;
+    document.getElementById('tf-pair').value = x.pair || '';
+    setDir(x.dir || 'buy');
+    document.getElementById('tf-date').value = x.date || todayStr();
+    document.getElementById('tf-time').value = x.time || '';
+    document.getElementById('tf-entry').value = x.entry ?? '';
+    document.getElementById('tf-tp').value = x.tp ?? '';
+    document.getElementById('tf-sl').value = x.sl ?? '';
+    document.getElementById('tf-exit').value = x.exit ?? '';
+    document.getElementById('tf-lot').value = x.lot ?? '';
+    document.getElementById('tf-pnl').value = x.pnl ?? '';
+    document.getElementById('tf-strategy').value = x.strategy || '';
+    populatePsychOptions(x.psych || 'calm');
+    document.getElementById('tf-notes').value = x.notes || '';
+    if(x.screenshot){
+      document.getElementById('tf-preview').src = x.screenshot;
+      document.getElementById('tf-preview').style.display = 'block';
+      document.getElementById('tf-drop-text').style.display = 'none';
+      document.getElementById('tf-drop').dataset.img = x.screenshot;
+    } else {
+      resetFilePreview();
+    }
+  } else {
+    document.getElementById('tf-id').value = '';
+    ['tf-pair','tf-time','tf-entry','tf-tp','tf-sl','tf-exit','tf-lot','tf-pnl','tf-strategy','tf-notes'].forEach(id2=> document.getElementById(id2).value='');
+    document.getElementById('tf-date').value = todayStr();
+    populatePsychOptions('calm');
+    setDir('buy');
+    resetFilePreview();
+  }
+  document.getElementById('trade-modal-overlay').classList.add('open');
+}
+function resetFilePreview(){
+  document.getElementById('tf-preview').style.display='none';
+  document.getElementById('tf-preview').src='';
+  document.getElementById('tf-drop-text').style.display='block';
+  document.getElementById('tf-drop').dataset.img = '';
+  document.getElementById('tf-file').value = '';
+}
+function handleFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const maxW = 900;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
+      document.getElementById('tf-preview').src = dataUrl;
+      document.getElementById('tf-preview').style.display = 'block';
+      document.getElementById('tf-drop-text').style.display = 'none';
+      document.getElementById('tf-drop').dataset.img = dataUrl;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function saveTrade(){
+  const pair = document.getElementById('tf-pair').value.trim();
+  if(!pair){ alert(t('fill_pair_alert')); return; }
+  const id = document.getElementById('tf-id').value || uid();
+  const data = {
+    id,
+    pair,
+    dir: document.getElementById('tf-dir').value,
+    date: document.getElementById('tf-date').value || todayStr(),
+    time: document.getElementById('tf-time').value,
+    entry: parseFloat(document.getElementById('tf-entry').value) || null,
+    tp: parseFloat(document.getElementById('tf-tp').value) || null,
+    sl: parseFloat(document.getElementById('tf-sl').value) || null,
+    exit: document.getElementById('tf-exit').value ? parseFloat(document.getElementById('tf-exit').value) : null,
+    lot: document.getElementById('tf-lot').value ? parseFloat(document.getElementById('tf-lot').value) : null,
+    pnl: document.getElementById('tf-pnl').value !== '' ? parseFloat(document.getElementById('tf-pnl').value) : null,
+    strategy: document.getElementById('tf-strategy').value.trim(),
+    psych: document.getElementById('tf-psych').value,
+    notes: document.getElementById('tf-notes').value.trim(),
+    screenshot: document.getElementById('tf-drop').dataset.img || ''
+  };
+  const idx = store.trades.findIndex(v=>v.id===id);
+  if(idx>=0) store.trades[idx] = data; else store.trades.push(data);
+  saveStore();
+  closeModal('trade-modal-overlay');
+  renderAll();
+}
+function deleteTradeConfirm(){
+  const id = document.getElementById('tf-id').value;
+  if(!id) return;
+  if(confirm(t('confirm_delete_trade'))){
+    store.trades = store.trades.filter(v=>v.id!==id);
+    saveStore();
+    closeModal('trade-modal-overlay');
+    renderAll();
+  }
+}
+
+/* ============ CALENDAR / SCHEDULE ============ */
+let calDate = new Date();
+function calShift(dir, toToday){
+  if(toToday){ calDate = new Date(); } else { calDate.setMonth(calDate.getMonth()+dir); }
+  renderCalendar();
+}
+function renderCalendar(){
+  const year = calDate.getFullYear(), month = calDate.getMonth();
+  document.getElementById('cal-month').textContent = calDate.toLocaleDateString(localeTag(), {month:'long', year:'numeric'});
+  const dow = currentLang==='id' ? ['Min','Sen','Sel','Rab','Kam','Jum','Sab'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  document.getElementById('cal-dow-row').innerHTML = dow.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const grid = document.getElementById('cal-grid');
+  let html = '';
+  for(let i=0;i<firstDay;i++) html += `<div class="cal-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = dateStr === todayStr();
+    const hasPlan = store.plans.some(p=>p.date===dateStr);
+    const dayTrades = store.trades.filter(x=>x.date===dateStr);
+    const hasProfit = dayTrades.some(x=>tradeStatus(x)==='profit');
+    const hasLoss = dayTrades.some(x=>tradeStatus(x)==='loss');
+    html += `<div class="cal-cell ${isToday?'today':''}" onclick="openPlanModal('${dateStr}')">
+      <div class="cal-daynum">${d}</div>
+      <div class="cal-dots">
+        ${hasPlan?'<div class="cal-dot plan"></div>':''}
+        ${hasProfit?'<div class="cal-dot trade-profit"></div>':''}
+        ${hasLoss?'<div class="cal-dot trade-loss"></div>':''}
+      </div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  const upcoming = store.plans.filter(p=>p.date >= todayStr()).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);
+  const box = document.getElementById('upcoming-plans');
+  box.innerHTML = upcoming.length ? upcoming.map(p=>`
+    <div class="trade-row" style="grid-template-columns:auto 1fr auto;" onclick="openPlanModal('${p.date}')">
+      <div class="thumb-empty" style="display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--pink-soft); font-weight:700;">${new Date(p.date+'T00:00:00').getDate()}</div>
+      <div class="trade-main"><div class="pair">${fmtDate(p.date)} · ${sessionLabel(p.session)}</div><div class="meta">${esc(p.pairs)||t('plan_no_pairs')}</div></div>
+      <div class="meta">${p.done? t('plan_done_check') : t('plan_label')}</div>
+    </div>
+  `).join('') : `<div class="empty"><div class="empty-icon">🗓️</div><div class="empty-title">${t('empty_upcoming_title')}</div></div>`;
+}
+function openPlanModal(dateStr){
+  const p = store.plans.find(x=>x.date===dateStr);
+  document.getElementById('pf-id').value = dateStr;
+  document.getElementById('pf-date').value = dateStr;
+  populateSessionOptions(p?.session || 'asia');
+  document.getElementById('pf-pairs').value = p?.pairs || '';
+  document.getElementById('pf-target').value = p?.target ?? '';
+  document.getElementById('pf-maxloss').value = p?.maxloss ?? '';
+  document.getElementById('pf-goals').value = p?.goals || '';
+  document.getElementById('pf-done').checked = !!p?.done;
+  document.getElementById('pf-delete').style.display = p ? 'inline-flex' : 'none';
+  document.getElementById('plan-modal-overlay').classList.add('open');
+}
+function savePlan(){
+  const date = document.getElementById('pf-date').value;
+  if(!date) return;
+  const data = {
+    date,
+    session: document.getElementById('pf-session').value,
+    pairs: document.getElementById('pf-pairs').value.trim(),
+    target: document.getElementById('pf-target').value ? parseFloat(document.getElementById('pf-target').value) : null,
+    maxloss: document.getElementById('pf-maxloss').value ? parseFloat(document.getElementById('pf-maxloss').value) : null,
+    goals: document.getElementById('pf-goals').value.trim(),
+    done: document.getElementById('pf-done').checked
+  };
+  const idx = store.plans.findIndex(p=>p.date===date);
+  if(idx>=0) store.plans[idx]=data; else store.plans.push(data);
+  saveStore();
+  closeModal('plan-modal-overlay');
+  renderCalendar();
+  renderDashboard();
+}
+function deletePlanConfirm(){
+  const date = document.getElementById('pf-id').value;
+  if(confirm(t('confirm_delete_plan'))){
+    store.plans = store.plans.filter(p=>p.date!==date);
+    saveStore();
+    closeModal('plan-modal-overlay');
+    renderCalendar();
+    renderDashboard();
+  }
+}
+
+/* ============ STATS VIEW ============ */
+function renderStats(){
+  const s = computeStats();
+  const grid = document.getElementById('stats-cards');
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-label">${t('stat_total_pnl')}</div><div class="stat-value ${s.totalPnl>0?'profit':s.totalPnl<0?'loss':''}">${fmtMoney(s.totalPnl)}</div></div>
+    <div class="stat-card"><div class="stat-label">${t('stat_win_rate')}</div><div class="stat-value pink">${s.winRate.toFixed(1)}%</div></div>
+    <div class="stat-card"><div class="stat-label">${t('stat_avg_win')}</div><div class="stat-value profit">${fmtMoney(s.avgWin)}</div></div>
+    <div class="stat-card"><div class="stat-label">${t('stat_avg_loss')}</div><div class="stat-value loss">${fmtMoney(s.avgLoss)}</div></div>
+  `;
+
+  const eq = equityCurveData();
+  if(chartEquityFull) chartEquityFull.destroy();
+  chartEquityFull = new Chart(document.getElementById('chart-equity-full'), equityChartConfig(eq));
+
+  if(chartWinLoss) chartWinLoss.destroy();
+  chartWinLoss = new Chart(document.getElementById('chart-winloss'), {
+    type:'doughnut',
+    data:{ labels:[t('filter_profit'),t('filter_loss')], datasets:[{ data:[s.wins.length, s.losses.length], backgroundColor:['#8fd9b6','#ff92a8'], borderWidth:0 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ color:'#a8969f', font:{size:11} } } }, cutout:'68%' }
+  });
+
+  const byPair = {};
+  s.closed.forEach(x=>{ byPair[x.pair] = (byPair[x.pair]||0) + parseFloat(x.pnl); });
+  const pairLabels = Object.keys(byPair);
+  const pairData = Object.values(byPair);
+  if(chartPair) chartPair.destroy();
+  chartPair = new Chart(document.getElementById('chart-pair'), {
+    type:'bar',
+    data:{ labels: pairLabels, datasets:[{ data: pairData, backgroundColor: pairData.map(v=>v>=0?'#8fd9b6':'#ff92a8'), borderRadius:6, maxBarThickness:34 }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>fmtMoney(c.raw) } } },
+      scales:{ x:{ ticks:{ color:'#a8969f', font:{size:10.5} }, grid:{display:false} }, y:{ ticks:{ color:'#a8969f', font:{size:10}, callback:v=>fmtMoney(v) }, grid:{ color:'rgba(255,255,255,0.05)' } } }
+    }
+  });
+
+  const psyCounts = {};
+  store.trades.forEach(x=>{ if(x.psych) psyCounts[x.psych] = (psyCounts[x.psych]||0)+1; });
+  const maxCount = Math.max(1, ...Object.values(psyCounts));
+  const psyBox = document.getElementById('psy-breakdown');
+  const entries = Object.entries(psyCounts).sort((a,b)=>b[1]-a[1]);
+  psyBox.innerHTML = entries.length ? entries.map(([k,v])=>`
+    <div class="psy-row">
+      <div class="psy-label">${psychLabel(k)}</div>
+      <div class="psy-bar-bg"><div class="psy-bar-fill" style="width:${(v/maxCount*100)}%"></div></div>
+      <div class="psy-count">${v}</div>
+    </div>
+  `).join('') : `<div class="empty"><div class="empty-sub">${t('psych_no_data')}</div></div>`;
+}
+
+/* ============ MODAL HELPERS ============ */
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target === ov) ov.classList.remove('open'); });
+});
+
+/* ============ INIT ============ */
+function renderAll(){
+  renderHeader();
+  renderDashboard();
+  renderJournal();
+  renderCalendar();
+  renderStats();
+}
+document.querySelector(`.lang-btn[data-lang="${currentLang}"]`)?.classList.add('active');
+document.querySelectorAll('.lang-btn').forEach(b=> b.classList.toggle('active', b.dataset.lang===currentLang));
+applyStaticI18n();
+renderAll();
+</script>
+</body>
+</html>
